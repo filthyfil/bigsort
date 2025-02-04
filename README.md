@@ -1,4 +1,4 @@
-Disclaimer: Written from ChatGPT 
+Disclaimer: Program written by ChatGPT 
 
     BIG SORT - SORT IN CONSTANT TIME! 
     ==================================
