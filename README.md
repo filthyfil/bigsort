@@ -11,7 +11,7 @@ Disclaimer: Program written by ChatGPT
      > create sparse presence array (vector) `bool exists[]`, 
        true indicates presence, its index indicates value
      > iterate over exists[] and if true, push the index i 
-       into the array (vector) `int sorted`
+       into the array (vector) `int sorted[]`
 
     PERFORMANCE:
     - Time Complexity: O(n + k) (linear, where `k = maxElement`).
