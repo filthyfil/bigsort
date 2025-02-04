@@ -1,4 +1,4 @@
-## BIG SORT - SORT IN CONSTANT TIME! 
+    BIG SORT - SORT IN CONSTANT TIME! 
     ==================================
     ASSUMPTIONS:
     - No duplicate values in the input array.
