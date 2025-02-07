@@ -1,58 +1,180 @@
-/*
-    BIG SORT - SORT IN CONSTANT TIME! 
-    ==================================
-    ASSUMPTIONS:
-    - No duplicate values in the input array.
-    - Input contains only positive integers.
-
-    PROGRAM FLOW:
-     > Create a vector `arr` containing unique random integers from the range [minValue, maxValue].
-     > Create a sparse presence vector `exists` (of bools) where each index indicates the number’s presence.
-     > Iterate over exists[] and if true, push the index (adjusted) into the vector `sorted`.
-
-    PERFORMANCE:
-    - Time Complexity: O(n + k) (linear, where k = maxElement).
-    - Space Complexity: O(k) (memory usage scales with the largest element).
-*/
-
 #include <iostream>
 #include <vector>
-#include <cstdlib>      // For srand()
-#include <ctime>        // For time()
-#include <algorithm>    // For std::max_element, std::shuffle
-#include <chrono>       // For high-resolution timer
-#include <random>       // For std::random_device and std::mt19937
+#include <cstdlib>      // For exit()
+#include <algorithm>    // For std::max_element and std::shuffle
+#include <chrono>       // For high-resolution timing
+#include <random>       // For random number generation
 
-// Function to generate a unique random array (vector) of given size with values in [minValue, maxValue]
-void generateUniqueRandomArray(std::vector<int>& arr, int minValue, int maxValue) {
-    int range = maxValue - minValue + 1;
-    if (arr.size() > static_cast<size_t>(range)) {
-        std::cerr << "Error: Array size cannot be larger than the number of unique values in the range.\n";
-        exit(1);
+// ============================================================
+// Class: RandomArrayGenerator
+// ------------------------------------------------------------
+// Role: Provides a static method to generate a unique random
+//       array (vector) of integers within a specified range.
+//       This class encapsulates the logic for creating and
+//       shuffling a full range of numbers, then selecting the
+//       desired count.
+// ============================================================
+class RandomArrayGenerator {
+public:
+    // ------------------------------------------------------------
+    // Method: generateUniqueRandomArray
+    // ------------------------------------------------------------
+    // Parameters:
+    //   - size: Number of unique random integers to generate.
+    //   - minValue: The minimum possible value in the range.
+    //   - maxValue: The maximum possible value in the range.
+    //
+    // Returns:
+    //   A vector of integers of the given size, containing unique
+    //   random values from [minValue, maxValue].
+    //
+    // Flow:
+    //   1. Check if the range is sufficient for the requested size.
+    //   2. Create a vector containing all numbers from minValue to maxValue.
+    //   3. Shuffle the vector using a modern random generator.
+    //   4. Return the first 'size' numbers from the shuffled vector.
+    // ------------------------------------------------------------
+    static std::vector<int> generateUniqueRandomArray(int size, int minValue, int maxValue) {
+        int range = maxValue - minValue + 1;
+        if (size > range) {
+            std::cerr << "Error: Array size cannot be larger than the number of unique values in the range.\n";
+            exit(1);
+        }
+
+        // Step 2: Populate a vector with all numbers in the range.
+        std::vector<int> allNumbers;
+        allNumbers.reserve(range);
+        for (int num = minValue; num <= maxValue; ++num) {
+            allNumbers.push_back(num);
+        }
+        
+        // Step 3: Shuffle the vector using a modern random generator.
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(allNumbers.begin(), allNumbers.end(), g);
+        
+        // Step 4: Build the resulting array by taking the first 'size' numbers.
+        std::vector<int> arr;
+        arr.reserve(size);
+        for (int i = 0; i < size; ++i) {
+            arr.push_back(allNumbers[i]);
+        }
+        return arr;
+    }
+};
+
+// ============================================================
+// Class: BigSorter
+// ------------------------------------------------------------
+// Role: Implements the "Big Sort" algorithm, which sorts an
+//       array in linear time using a sparse presence vector.
+//       It also measures the time taken to perform the sort.
+// ============================================================
+class BigSorter {
+public:
+    // ------------------------------------------------------------
+    // Constructor: BigSorter
+    // ------------------------------------------------------------
+    // Parameters:
+    //   - inputArray: The unsorted array to be processed.
+    //
+    // Role:
+    //   Stores the original array and initializes timing and
+    //   internal state variables.
+    // ------------------------------------------------------------
+    BigSorter(const std::vector<int>& inputArray)
+        : originalArray(inputArray), sortDurationMs(0), existsArraySize(0) { }
+
+    // ------------------------------------------------------------
+    // Method: sort
+    // ------------------------------------------------------------
+    // Role:
+    //   Performs the "Big Sort" algorithm which:
+    //     1. Finds the maximum element to determine the size of a
+    //        boolean "exists" vector.
+    //     2. Marks the presence of each number in the boolean vector.
+    //     3. Iterates through the boolean vector to build a compact,
+    //        sorted array.
+    //     4. Measures and records the time taken for this sorting process.
+    // ------------------------------------------------------------
+    void sort() {
+        using Clock = std::chrono::high_resolution_clock;
+        auto startTime = Clock::now();
+
+        // Step 1: Determine the maximum element in the array.
+        int maxElement = *std::max_element(originalArray.begin(), originalArray.end());
+        existsArraySize = maxElement; // 'exists' vector will have a size equal to the maximum element.
+
+        // Step 2: Create and populate a boolean vector indicating number presence.
+        std::vector<bool> exists(existsArraySize, false);
+        for (int value : originalArray) {
+            exists[value - 1] = true; // Adjust index for zero-based vector.
+        }
+
+        // Step 3: Build the sorted array by iterating over the 'exists' vector.
+        sortedArray.clear();
+        sortedArray.reserve(originalArray.size());
+        for (size_t i = 0; i < exists.size(); ++i) {
+            if (exists[i]) {
+                sortedArray.push_back(static_cast<int>(i + 1)); // Adjust index back.
+            }
+        }
+
+        // Step 4: Record the elapsed time for the sort operation.
+        auto endTime = Clock::now();
+        sortDurationMs = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
     }
 
-    // Create a vector containing the entire range of numbers.
-    std::vector<int> allNumbers;
-    allNumbers.reserve(range);
-    for (int num = minValue; num <= maxValue; num++) {
-        allNumbers.push_back(num);
-    }
-    
-    // Shuffle the vector using a modern random generator.
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(allNumbers.begin(), allNumbers.end(), g);
-    
-    // Fill 'arr' with the first arr.size() numbers from the shuffled list.
-    for (size_t i = 0; i < arr.size(); i++) {
-        arr[i] = allNumbers[i];
-    }
-}
+    // ------------------------------------------------------------
+    // Accessor: getSortedArray
+    // ------------------------------------------------------------
+    // Returns:
+    //   A constant reference to the sorted array.
+    // ------------------------------------------------------------
+    const std::vector<int>& getSortedArray() const { return sortedArray; }
 
+    // ------------------------------------------------------------
+    // Accessor: getSortDurationMs
+    // ------------------------------------------------------------
+    // Returns:
+    //   The time taken (in milliseconds) to perform the sorting.
+    // ------------------------------------------------------------
+    long long getSortDurationMs() const { return sortDurationMs; }
+
+    // ------------------------------------------------------------
+    // Accessor: getOriginalArraySize
+    // ------------------------------------------------------------
+    // Returns:
+    //   The number of elements in the original unsorted array.
+    // ------------------------------------------------------------
+    int getOriginalArraySize() const { return static_cast<int>(originalArray.size()); }
+
+    // ------------------------------------------------------------
+    // Accessor: getExistsArraySize
+    // ------------------------------------------------------------
+    // Returns:
+    //   The size of the boolean "exists" vector used during sorting.
+    // ------------------------------------------------------------
+    int getExistsArraySize() const { return existsArraySize; }
+
+private:
+    std::vector<int> originalArray;  // The original unsorted array.
+    std::vector<int> sortedArray;    // The resulting sorted array.
+    long long sortDurationMs;        // Time taken for sorting in milliseconds.
+    int existsArraySize;             // Size of the boolean "exists" vector.
+};
+
+// ============================================================
+// Function: main
+// ------------------------------------------------------------
+// Role: Orchestrates the overall program flow:
+//       1. Gathers user input for the array size and maximum value.
+//       2. Generates a unique random array using RandomArrayGenerator.
+//       3. Displays the original unsorted array.
+//       4. Instantiates BigSorter to sort the array and measure sorting time.
+//       5. Displays the sorted array and timing details.
+// ------------------------------------------------------------
 int main() {
-    // Seed the C library random number generator (only needed if using rand(), here we use std::shuffle).
-    std::srand(static_cast<unsigned>(std::time(nullptr)));
-
     int size;
     std::cout << "Enter array size: ";
     std::cin >> size;
@@ -61,63 +183,42 @@ int main() {
     std::cout << "Enter max element value: ";
     std::cin >> max;
 
-    // Ensure that the range is large enough to provide unique values.
-    if (size > (max - 1 + 1)) {
+    // Validate that the array size does not exceed the range of unique values.
+    if (size > max) {
         std::cerr << "Error: Array size (" << size 
                   << ") is greater than the number of unique values in the range [1, " << max << "].\n";
         return 1;
     }
 
-    // Create and fill the original array with unique random values.
-    std::vector<int> arr(size);
-    generateUniqueRandomArray(arr, 1, max);
+    // Step 1 & 2: Generate the original unsorted array with unique random values.
+    std::vector<int> arr = RandomArrayGenerator::generateUniqueRandomArray(size, 1, max);
 
-    // Print the original array
+    // Step 3: Print the original unsorted array.
     std::cout << "Original Array: ";
     for (int value : arr) {
         std::cout << value << " ";
     }
     std::cout << "\n";
 
-    // Start the timer (timing the sorting process)
-    auto startTime = std::chrono::high_resolution_clock::now();
+    // Step 4: Create an instance of BigSorter to perform the sort.
+    BigSorter sorter(arr);
+    sorter.sort();
 
-    // Find the maximum element in the original array.
-    // (Since there are no duplicates and the values come from [1, max], maxElement should be <= max.)
-    int maxElement = *std::max_element(arr.begin(), arr.end());
+    // Retrieve the sorted array.
+    const std::vector<int>& sorted = sorter.getSortedArray();
 
-    // Create a boolean vector of size maxElement to mark the presence of numbers.
-    std::vector<bool> exists(maxElement, false);
-    for (int value : arr) {
-        // Mark the number's existence (adjusting for zero-based indexing)
-        exists[value - 1] = true;
-    }
-
-    // Create the compact sorted array by iterating over the 'exists' vector.
-    // Since the indices are processed in order, the resulting array is sorted.
-    std::vector<int> sorted;
-    sorted.reserve(arr.size());
-    for (size_t i = 0; i < exists.size(); i++) {
-        if (exists[i]) {
-            sorted.push_back(static_cast<int>(i + 1));
-        }
-    }
-
-    // End the timer after sorting is complete.
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-
-    // Print the compact sorted array.
+    // Step 5: Display the sorted array.
     std::cout << "Compact Sorted Array: ";
     for (int value : sorted) {
         std::cout << value << " ";
     }
     std::cout << "\n";
 
-    std::cout << "Original array size: " << arr.size() << '\n';
-    std::cout << "Exists array size: " << exists.size() << '\n';
-    std::cout << "Sorted array size: " << sorted.size() << '\n';
-    std::cout << "Time taken to sort: " << duration.count() << " milliseconds\n";
+    // Display additional performance details.
+    std::cout << "Original array size: " << sorter.getOriginalArraySize() << "\n";
+    std::cout << "Exists array size: " << sorter.getExistsArraySize() << "\n";
+    std::cout << "Sorted array size: " << sorted.size() << "\n";
+    std::cout << "Time taken to sort: " << sorter.getSortDurationMs() << " milliseconds\n";
 
     return 0;
 }
